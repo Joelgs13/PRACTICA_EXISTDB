@@ -84,45 +84,47 @@ public class GimnasioExistDB {
     let $actividades := doc('actividades_gim.xml')/ACTIVIDADES_GIM/fila_actividades
     let $uso := doc('uso_gimnasio.xml')/USO_GIMNASIO/fila_uso
     for $u in $uso
-    let $socio := $socios[COD=$u/CODSOCIO]
-    let $actividad := $actividades[@cod=$u/CODACTIV]
+    let $socio := $socios[COD = $u/CODSOCIO][1] (: Limitar a un resultado :)
+    let $actividad := $actividades[@cod = $u/CODACTIV][1] (: Limitar a un resultado :)
     let $horas := xs:integer($u/HORAFINAL) - xs:integer($u/HORAINICIO)
     let $cuota_adicional := 
-        if ($actividad/@tipo='1') then 0
-        else if ($actividad/@tipo='2') then $horas * 2
-        else if ($actividad/@tipo='3') then $horas * 4
+        if ($actividad/@tipo = '1') then 0
+        else if ($actividad/@tipo = '2') then $horas * 2
+        else if ($actividad/@tipo = '3') then $horas * 4
         else 0
     return 
         <datos>
-            <COD>{$u/CODSOCIO}</COD>
-            <NOMBRESOCIO>{$socio/NOMBRE}</NOMBRESOCIO>
-            <CODACTIV>{$u/CODACTIV}</CODACTIV>
-            <NOMBREACTIVIDAD>{$actividad/NOMBRE}</NOMBREACTIVIDAD>
+            <COD>{data($u/CODSOCIO)}</COD>
+            <NOMBRESOCIO>{data($socio/NOMBRE)}</NOMBRESOCIO>
+            <CODACTIV>{data($u/CODACTIV)}</CODACTIV>
+            <NOMBREACTIVIDAD>{data($actividad/NOMBRE)}</NOMBREACTIVIDAD>
             <horas>{$horas}</horas>
-            <tipoact>{$actividad/@tipo}</tipoact>
+            <tipoact>{data($actividad/@tipo)}</tipoact>
             <cuota_adicional>{$cuota_adicional}</cuota_adicional>
         </datos>
     """;
     }
 
 
+
     private static String generarXQueryFinal() {
         return """
-        let $socios := doc('socios_gim.xml')/SOCIOS_GIM/fila_socios
-        let $cuotas := doc('cuotas_adicionales.xml')/datos
-        for $socio in $socios
-        let $suma_cuota_adic := sum($cuotas[COD=$socio/COD]/cuota_adicional)
-        let $cuota_total := $suma_cuota_adic + xs:decimal($socio/CUOTA_FIJA)
-        return 
-            <datos>
-                <COD>{$socio/COD}</COD>
-                <NOMBRESOCIO>{$socio/NOMBRE}</NOMBRESOCIO>
-                <CUOTA_FIJA>{$socio/CUOTA_FIJA}</CUOTA_FIJA>
-                <suma_cuota_adic>{$suma_cuota_adic}</suma_cuota_adic>
-                <cuota_total>{$cuota_total}</cuota_total>
-            </datos>
-        """;
+    let $socios := doc('socios_gim.xml')/SOCIOS_GIM/fila_socios
+    let $cuotas := doc('cuotas_adicionales.xml')/datos
+    for $socio in $socios
+    let $suma_cuota_adic := sum($cuotas[COD = $socio/COD]/cuota_adicional)
+    let $cuota_total := $suma_cuota_adic + xs:decimal($socio/CUOTA_FIJA)
+    return 
+        <datos>
+            <COD>{data($socio/COD)}</COD>
+            <NOMBRESOCIO>{data($socio/NOMBRE)}</NOMBRESOCIO>
+            <CUOTA_FIJA>{data($socio/CUOTA_FIJA)}</CUOTA_FIJA>
+            <suma_cuota_adic>{$suma_cuota_adic}</suma_cuota_adic>
+            <cuota_total>{$cuota_total}</cuota_total>
+        </datos>
+    """;
     }
+
 
     private static void ejecutarYGuardarXQuery(Collection col, String xquery, String fileName) throws Exception {
         XQueryService xQueryService = (XQueryService) col.getService("XQueryService", "1.0");
